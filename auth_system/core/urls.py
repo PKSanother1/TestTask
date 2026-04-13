@@ -2,8 +2,8 @@ from django.urls import path
 from .views import (
     register,
     login,
-    logout,
     refresh_access_token,
+    logout,
     update_profile,
     delete_user,
     products,
@@ -17,8 +17,8 @@ from .views import (
 urlpatterns = [
     path("register/", register),
     path("login/", login),
+    path("refresh/", refresh_access_token),
     path("logout/", logout),
-    path("token/refresh/", refresh_access_token),
 
     path("profile/", update_profile),
     path("profile/delete/", delete_user),

@@ -14,29 +14,24 @@ def create_access_token(user_id: int) -> str:
         "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
         "iat": datetime.utcnow(),
     }
-
-    token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
-    return token
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
 
 
 def create_refresh_token(user_id: int):
     expires_at = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-
     payload = {
         "user_id": user_id,
         "type": "refresh",
         "exp": expires_at,
         "iat": datetime.utcnow(),
     }
-
     token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
     return token, expires_at
 
 
 def decode_token(token: str) -> dict:
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        return payload
+        return jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
         raise Exception("Token expired")
     except jwt.InvalidTokenError:

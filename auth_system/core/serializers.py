@@ -16,7 +16,7 @@ class LoginSerializer(serializers.Serializer):
 
 
 class RefreshTokenSerializer(serializers.Serializer):
-    refresh_token = serializers.CharField()
+    refresh_token = serializers.CharField(required=False, allow_blank=True)
 
 
 class UpdateProfileSerializer(serializers.Serializer):

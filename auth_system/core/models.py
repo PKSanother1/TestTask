@@ -51,7 +51,7 @@ class AccessRule(models.Model):
 
     def __str__(self):
         return f"{self.role.name} -> {self.element.name}"
-    
+
 
 class RefreshToken(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -62,7 +62,7 @@ class RefreshToken(models.Model):
 
     def __str__(self):
         return f"RefreshToken(user={self.user.email})"
-    
+
 
 class BlacklistedToken(models.Model):
     token = models.CharField(max_length=512, unique=True)
@@ -70,7 +70,7 @@ class BlacklistedToken(models.Model):
 
     def __str__(self):
         return f"BlacklistedToken({self.id})"
-    
+
 
 class Product(models.Model):
     name = models.CharField(max_length=255)
