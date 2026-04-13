@@ -26,10 +26,16 @@ def register(request):
     data = serializer.validated_data
 
     if data["password"] != data["password_confirm"]:
-        return Response({"error": "password mismatch"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "password mismatch"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     if User.objects.filter(email=data["email"]).exists():
-        return Response({"error": "email already exists"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "email already exists"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     role, _ = Role.objects.get_or_create(name="user")
 
@@ -42,7 +48,10 @@ def register(request):
         role=role,
     )
 
-    return Response({"message": "user created"}, status=status.HTTP_201_CREATED)
+    return Response(
+        {"message": "user created"},
+        status=status.HTTP_201_CREATED
+    )
 
 
 @extend_schema(request=LoginSerializer, summary="Логин пользователя")
@@ -55,10 +64,16 @@ def login(request):
     user = User.objects.filter(email=data["email"]).first()
 
     if not user or not check_password(data["password"], user.password):
-        return Response({"error": "invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response(
+            {"error": "invalid credentials"},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
 
     if not user.is_active:
-        return Response({"error": "user disabled"}, status=status.HTTP_403_FORBIDDEN)
+        return Response(
+            {"error": "user disabled"},
+            status=status.HTTP_403_FORBIDDEN
+        )
 
     access_token = create_access_token(user.id)
     refresh_token, expires_at = create_refresh_token(user.id)
@@ -92,22 +107,37 @@ def refresh_access_token(request):
     ).first()
 
     if not stored_token:
-        return Response({"error": "invalid refresh token"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response(
+            {"error": "invalid refresh token"},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
 
     try:
         payload = decode_token(refresh_token)
     except Exception:
-        return Response({"error": "invalid refresh token"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response(
+            {"error": "invalid refresh token"},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
 
     if payload.get("type") != "refresh":
-        return Response({"error": "invalid token type"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response(
+            {"error": "invalid token type"},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
 
     if not stored_token.user.is_active:
-        return Response({"error": "user disabled"}, status=status.HTTP_403_FORBIDDEN)
+        return Response(
+            {"error": "user disabled"},
+            status=status.HTTP_403_FORBIDDEN
+        )
 
     access_token = create_access_token(stored_token.user.id)
 
-    return Response({"access_token": access_token}, status=status.HTTP_200_OK)
+    return Response(
+        {"access_token": access_token},
+        status=status.HTTP_200_OK
+    )
 
 
 @extend_schema(request=RefreshTokenSerializer, summary="Logout пользователя")
@@ -126,15 +156,22 @@ def logout(request):
             stored_token.is_revoked = True
             stored_token.save()
 
-    return Response({"message": "logout successful"}, status=status.HTTP_200_OK)
+    return Response(
+        {"message": "logout successful"},
+        status=status.HTTP_200_OK
+    )
 
 
 @extend_schema(request=UpdateProfileSerializer, summary="Обновление профиля")
 @api_view(["PUT"])
 def update_profile(request):
     user = request.user
-    if not user:
-        return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    if not user or not hasattr(user, "role"):
+        return Response(
+            {"error": "Unauthorized"},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
 
     serializer = UpdateProfileSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -145,20 +182,30 @@ def update_profile(request):
     user.patronymic = data.get("patronymic", user.patronymic)
     user.save()
 
-    return Response({"message": "updated"}, status=status.HTTP_200_OK)
+    return Response(
+        {"message": "updated"},
+        status=status.HTTP_200_OK
+    )
 
 
 @extend_schema(summary="Мягкое удаление пользователя")
 @api_view(["DELETE"])
 def delete_user(request):
     user = request.user
-    if not user:
-        return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    if not user or not hasattr(user, "role"):
+        return Response(
+            {"error": "Unauthorized"},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
 
     user.is_active = False
     user.save()
 
-    return Response({"message": "user deactivated"}, status=status.HTTP_200_OK)
+    return Response(
+        {"message": "user deactivated"},
+        status=status.HTTP_200_OK
+    )
 
 
 @extend_schema(summary="Список продуктов")
@@ -206,11 +253,18 @@ def products(request):
 @api_view(["POST"])
 def create_product(request):
     user = request.user
-    if not user:
-        return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    if not user or not hasattr(user, "role"):
+        return Response(
+            {"error": "Unauthorized"},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
 
     if not check_permission(user, "products", "create"):
-        return Response({"error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        return Response(
+            {"error": "Forbidden"},
+            status=status.HTTP_403_FORBIDDEN
+        )
 
     serializer = ProductCreateSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -237,15 +291,25 @@ def create_product(request):
 @api_view(["PUT"])
 def update_product(request, product_id: int):
     user = request.user
-    if not user:
-        return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    if not user or not hasattr(user, "role"):
+        return Response(
+            {"error": "Unauthorized"},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
 
     product = Product.objects.filter(id=product_id).first()
     if not product:
-        return Response({"error": "Not Found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Not Found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
     if not check_object_permission(user, "products", "update", owner_id=product.owner_id):
-        return Response({"error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        return Response(
+            {"error": "Forbidden"},
+            status=status.HTTP_403_FORBIDDEN
+        )
 
     serializer = ProductUpdateSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -255,36 +319,60 @@ def update_product(request, product_id: int):
     product.description = data.get("description", product.description)
     product.save()
 
-    return Response({"message": "product updated"}, status=status.HTTP_200_OK)
+    return Response(
+        {"message": "product updated"},
+        status=status.HTTP_200_OK
+    )
 
 
 @extend_schema(summary="Удалить продукт")
 @api_view(["DELETE"])
 def delete_product(request, product_id: int):
     user = request.user
-    if not user:
-        return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    if not user or not hasattr(user, "role"):
+        return Response(
+            {"error": "Unauthorized"},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
 
     product = Product.objects.filter(id=product_id).first()
     if not product:
-        return Response({"error": "Not Found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Not Found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
     if not check_object_permission(user, "products", "delete", owner_id=product.owner_id):
-        return Response({"error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        return Response(
+            {"error": "Forbidden"},
+            status=status.HTTP_403_FORBIDDEN
+        )
 
     product.delete()
-    return Response({"message": "product deleted"}, status=status.HTTP_200_OK)
+
+    return Response(
+        {"message": "product deleted"},
+        status=status.HTTP_200_OK
+    )
 
 
 @extend_schema(summary="Получить правила доступа (только admin)")
 @api_view(["GET"])
 def access_rules(request):
     user = request.user
-    if not user:
-        return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    if not user or not hasattr(user, "role"):
+        return Response(
+            {"error": "Unauthorized"},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
 
     if user.role.name != "admin":
-        return Response({"error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        return Response(
+            {"error": "Forbidden"},
+            status=status.HTTP_403_FORBIDDEN
+        )
 
     rules = AccessRule.objects.select_related("role", "element").all()
 
@@ -310,11 +398,18 @@ def access_rules(request):
 @api_view(["POST"])
 def update_access_rule(request):
     user = request.user
-    if not user:
-        return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    if not user or not hasattr(user, "role"):
+        return Response(
+            {"error": "Unauthorized"},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
 
     if user.role.name != "admin":
-        return Response({"error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        return Response(
+            {"error": "Forbidden"},
+            status=status.HTTP_403_FORBIDDEN
+        )
 
     serializer = AccessRuleUpdateSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -322,11 +417,17 @@ def update_access_rule(request):
 
     role = Role.objects.filter(name=data["role"]).first()
     if not role:
-        return Response({"error": "role not found"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "role not found"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     resource = BusinessElement.objects.filter(name=data["resource"]).first()
     if not resource:
-        return Response({"error": "resource not found"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "resource not found"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     rule, _ = AccessRule.objects.get_or_create(role=role, element=resource)
 
@@ -344,4 +445,8 @@ def update_access_rule(request):
 
     rule.save()
 
-    return Response({"message": "rule updated"}, status=status.HTTP_200_OK)
+    return Response(
+        {"message": "rule updated"},
+        status=status.HTTP_200_OK
+    )
+
