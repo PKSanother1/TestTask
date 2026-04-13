@@ -165,19 +165,29 @@ def delete_user(request):
 @api_view(["GET"])
 def products(request):
     user = request.user
-    if not user:
-        return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    if not user or not hasattr(user, "role"):
+        return Response(
+            {"error": "Unauthorized"},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
 
     rule = get_rule(user, "products")
     if not rule:
-        return Response({"error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        return Response(
+            {"error": "Forbidden"},
+            status=status.HTTP_403_FORBIDDEN
+        )
 
     if rule.can_read_all:
         qs = Product.objects.all()
     elif rule.can_read:
         qs = Product.objects.filter(owner=user)
     else:
-        return Response({"error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        return Response(
+            {"error": "Forbidden"},
+            status=status.HTTP_403_FORBIDDEN
+        )
 
     data = [
         {
